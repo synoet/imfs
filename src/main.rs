@@ -1,11 +1,11 @@
 use std::collections::HashMap;
-use std::time::SystemTime;
 use std::fs;
 use std::path;
-use std::time::{Duration, Instant};
 use std::rc::Rc;
+use std::time::Instant;
+use std::time::SystemTime;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[warn(dead_code)]
 pub struct File {
     pub name: String,
@@ -18,7 +18,7 @@ pub struct File {
 }
 
 impl File {
-    fn new (location: String) -> File {
+    fn new(location: String) -> File {
         let metadata = fs::metadata(&location).unwrap();
         let buffer = fs::read(&location).unwrap();
 
@@ -34,7 +34,7 @@ impl File {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Directory {
     pub location: String,
     pub created: SystemTime,
@@ -46,7 +46,7 @@ pub struct Directory {
 #[derive(Debug)]
 pub enum FileSystemItem {
     File(File),
-    Directory(Directory)
+    Directory(Directory),
 }
 
 trait FileSystemItemTrait {
@@ -61,7 +61,6 @@ impl FileSystemItemTrait for FileSystemItem {
         }
     }
 }
-
 
 pub struct Cache {
     pub root: Option<Directory>,
@@ -81,14 +80,13 @@ impl Directory {
     }
 }
 
-
-
 // What should Cache support ?
-// read (both file and dir)
-// write (both file and dir)
-// exists (both file and dir)
-// copy (both file and dir)
-// sync whole cache to user disk
+// -[x] read (both file and dir)
+// -[ ] write (file)
+// -[ ] mkdir (dir)
+// -[x] exists (both file and dir)
+// -[ ] copy (both file and dir)
+// -[ ] sync whole cache to user disk
 
 impl Cache {
     pub fn new(host_location: String) -> Cache {
@@ -104,11 +102,10 @@ impl Cache {
 
         cache.root = Some(dir);
 
-
         cache
     }
 
-    fn _init_dir(&mut self, dir: &mut Directory ) {
+    fn _init_dir(&mut self, dir: &mut Directory) {
         let mut items: HashMap<String, Rc<FileSystemItem>> = HashMap::new();
         let root = fs::read_dir(&dir.location).unwrap();
 
@@ -118,14 +115,14 @@ impl Cache {
             let metadata = entry.metadata().unwrap();
 
             if metadata.is_dir() {
-                let dir = FileSystemItem::Directory(Directory::new(path.to_str().unwrap().to_string()));
+                let dir =
+                    FileSystemItem::Directory(Directory::new(path.to_str().unwrap().to_string()));
                 let location = dir.location().clone();
                 items.insert(dir.location(), Rc::new(dir));
 
                 if let Some(dir_ref) = items.get(&location) {
                     self.location_map.insert(location, Rc::clone(dir_ref));
                 }
-
             } else {
                 let file = FileSystemItem::File(File::new(path.to_str().unwrap().to_string()));
                 let location = file.location().clone();
@@ -146,19 +143,36 @@ impl Cache {
 
         None
     }
+
+    pub fn exists(&self, location: String) -> bool {
+        self.location_map.contains_key(&location)
+    }
+
+    pub fn mkdir(&self, location: String) {
+        let trimmed_location = location.replace(&self.host_location, "");
+        let location_path = path::Path::new(&trimmed_location);
+        let mut curr_dir = self.root.as_ref().unwrap();
+
+        let components = location_path.components();
+        unimplemented!();
+    }
 }
 
 fn main() {
     let cache = Cache::new(String::from("/Users/synoet/Documents/"));
-    let cache_start = Instant::now();
-    cache.read(String::from("/Users/synoet/Documents/compare test"));
-    let cache_end = cache_start.elapsed();
-    println!("Cache took: {:?}", cache_end);
+    // let cache_start = Instant::now();
+    // // cache.read(String::from("/Users/synoet/Documents"));
+    // cache.exists(String::from("/Users/synoet/Documents"));
+    // let cache_end = cache_start.elapsed();
+    // println!("Cache took: {:?}", cache_end);
 
-    let disk_start = Instant::now();
-    let file = fs::read("/Users/synoet/Documents/compare test");
-    let disk_end = disk_start.elapsed();
+    // let disk_start = Instant::now();
+    // // let file = fs::read("/Users/synoet/Documents");
+    // fs::metadata("/Users/synoet/Documents").unwrap();
 
-    println!("Disk took: {:?}", disk_end);
+    // let disk_end = disk_start.elapsed();
 
+    cache.mkdir(String::from("/Users/synoet/Documents/abc/hello/world"));
+
+    // println!("Disk took: {:?}", disk_end);
 }
