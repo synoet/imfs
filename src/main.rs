@@ -78,12 +78,16 @@ impl Directory {
             cache_modified: false,
         }
     }
+
+    pub fn set_modified(&mut self) {
+        self.cache_modified = true;
+    }
 }
 
 // What should Cache support ?
 // -[x] read (both file and dir)
 // -[ ] write (file)
-// -[ ] mkdir (dir)
+// -[x] mkdir (dir)
 // -[x] exists (both file and dir)
 // -[ ] copy (both file and dir)
 // -[ ] sync whole cache to user disk
@@ -148,18 +152,48 @@ impl Cache {
         self.location_map.contains_key(&location)
     }
 
-    pub fn mkdir(&self, location: String) {
+    fn within(&self, location: String) -> bool {
+        location.starts_with(&self.host_location)
+    }
+
+    //TODO: this is kind of wonky
+    pub fn mkdir(&mut self, location: String) {
+        if !self.within(location.clone()) {
+            panic!("location is not within cache");
+        }
+
         let trimmed_location = location.replace(&self.host_location, "");
         let location_path = path::Path::new(&trimmed_location);
-        let mut curr_dir = self.root.as_ref().unwrap();
+        let mut curr_location = self.root.as_ref().unwrap().location.clone();
 
         let components = location_path.components();
-        unimplemented!();
+        for component in components.clone() {
+            let formatted_component = component.as_os_str().to_str().unwrap().to_string();
+            let target_dir = format!("{}{}", curr_location, formatted_component);
+
+            if !self.exists(target_dir.clone()) {
+                let mut raw_dir = Directory::new(target_dir.clone());
+                raw_dir.set_modified();
+                let dir = FileSystemItem::Directory(raw_dir);
+                self.root
+                    .as_mut()
+                    .unwrap()
+                    .items
+                    .insert(target_dir.clone(), Rc::new(dir));
+                self.location_map.insert(
+                    target_dir.clone(),
+                    Rc::clone(self.root.as_ref().unwrap().items.get(&target_dir).unwrap()),
+                );
+            }
+
+            curr_location.push_str(format!("{}/", &formatted_component).as_str());
+        }
     }
+
 }
 
 fn main() {
-    let cache = Cache::new(String::from("/Users/synoet/Documents/"));
+    let mut cache = Cache::new(String::from("/Users/synoet/Documents/"));
     // let cache_start = Instant::now();
     // // cache.read(String::from("/Users/synoet/Documents"));
     // cache.exists(String::from("/Users/synoet/Documents"));
@@ -172,7 +206,7 @@ fn main() {
 
     // let disk_end = disk_start.elapsed();
 
-    cache.mkdir(String::from("/Users/synoet/Documents/abc/hello/world"));
+    cache.mkdir(String::from("/Users/synoet/Documents/backup_test/bingo"));
 
     // println!("Disk took: {:?}", disk_end);
 }
