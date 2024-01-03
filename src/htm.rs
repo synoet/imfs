@@ -9,15 +9,15 @@ type WeakNodeRef<T> = Weak<RefCell<T>>;
 
 pub struct TreeNode<T> {
     pub value: T,
-    pub children: ChildrenMap<T>,
+    pub children: Option<ChildrenMap<T>>,
     pub parent: RefCell<Option<WeakNodeRef<TreeNode<T>>>>,
 }
 
 impl<T> TreeNode<T> {
     pub fn new(value: T) -> Self {
         Self {
-            value: value,
-            children: HashMap::new(),
+            value,
+            children: Some(HashMap::new()),
             parent: RefCell::new(None),
         }
     }
@@ -48,10 +48,7 @@ impl<T> HashedTreeMap<T> {
         let rc_node = Rc::new(RefCell::new(node));
         let map_node = Rc::clone(&rc_node);
         self.map.insert(id, map_node);
-        parent
-            .borrow_mut()
-            .children
-            .insert(name, Rc::clone(&rc_node));
+        parent.borrow_mut().children.as_mut().unwrap_or(&mut HashMap::new()).insert(name, Rc::clone(&rc_node));
     }
 
     pub fn get(&self, id: &str) -> Option<NodeRef<TreeNode<T>>> {
