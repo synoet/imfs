@@ -14,6 +14,7 @@ pub struct File {
     pub size: u64,
     pub buffer: Vec<u8>,
     pub location: String,
+    cache_modified: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -21,14 +22,16 @@ pub struct Directory {
     pub location: String,
     pub created: SystemTime,
     pub modified: SystemTime,
+    cache_modified: bool,
 }
 
 impl Directory {
-    pub fn new(location: String) -> Self {
+    pub fn new(location: String, cache_modified: bool) -> Self {
         Self {
             location,
             created: SystemTime::now(),
             modified: SystemTime::now(),
+            cache_modified,
         }
     }
 }
@@ -62,7 +65,7 @@ impl InitializeFileTree for HashedTreeMap<FileSystemItem> {
             let path = entry.path();
 
             if metadata.is_dir() {
-                let dir = Directory::new(path.to_str().unwrap().to_string());
+                let dir = Directory::new(path.to_str().unwrap().to_string(), false);
                 let item = FileSystemItem::Directory(dir);
 
                 self.insert(
@@ -80,6 +83,7 @@ impl InitializeFileTree for HashedTreeMap<FileSystemItem> {
                     size: metadata.len(),
                     buffer: read(path.clone()).unwrap(),
                     location: path.to_str().unwrap().to_string(),
+                    cache_modified: false,
                 };
 
                 let item = FileSystemItem::File(file);
@@ -142,7 +146,7 @@ impl Cache {
             });
         }
 
-        let root_dir = Directory::new(location.to_string());
+        let root_dir = Directory::new(location.to_string(), false);
         let root_node = TreeNode::new(FileSystemItem::Directory(root_dir));
         let mut tree = HashedTreeMap::new(location.to_string(), root_node);
 
@@ -194,7 +198,7 @@ impl Cache {
                         .to_str()
                         .unwrap()
                         .to_string(),
-                    FileSystemItem::Directory(Directory::new(location.to_string())),
+                    FileSystemItem::Directory(Directory::new(location.to_string(), true)),
                 );
                 return Ok(());
             }
@@ -236,6 +240,7 @@ impl Cache {
                         size: buffer.len() as u64,
                         buffer,
                         location: location.to_string(),
+                        cache_modified: true,
                     }),
                 );
                 return Ok(());
@@ -260,6 +265,31 @@ impl Cache {
         }
 
         self.tree.remove(location);
+        Ok(())
+    }
+
+    pub fn sync(&mut self) -> Result<(), CacheError> {
+        // TODO: it's probobly better to store a RC to modified nodes
+        let _items = self.tree.map.clone().values().filter(|node_ref| {
+            let node = node_ref.borrow();
+            match &node.value {
+                FileSystemItem::File(file) => file.cache_modified,
+                FileSystemItem::Directory(dir) => dir.cache_modified,
+            }
+        }).for_each(|item| {
+            let mut node = item.borrow_mut();
+            match &mut node.value {
+                FileSystemItem::File(file) => {
+                    file.cache_modified = false;
+                    let path = Path::new(&file.location);
+                    std::fs::write(path, &file.buffer).unwrap();
+                }
+                FileSystemItem::Directory(dir) => {
+                    std::fs::create_dir(&dir.location).unwrap();
+                }
+            }
+        });
+
         Ok(())
     }
 }
