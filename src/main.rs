@@ -1,3 +1,6 @@
+mod htm;
+use path::Component;
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fs;
 use std::path;
@@ -59,6 +62,16 @@ impl FileSystemItemTrait for FileSystemItem {
             FileSystemItem::File(file) => file.location.clone(),
             FileSystemItem::Directory(dir) => dir.location.clone(),
         }
+    }
+}
+
+trait ToString {
+    fn to_string(&self) -> String;
+}
+
+impl ToString for path::Component<'_> {
+    fn to_string(&self) -> String {
+        return self.as_os_str().to_str().unwrap().to_string();
     }
 }
 
@@ -152,6 +165,17 @@ impl Cache {
         self.location_map.contains_key(&location)
     }
 
+    pub fn is_dir(&self, location: String) -> bool {
+        if let Some(item) = self.location_map.get(&location) {
+            if let FileSystemItem::Directory(_) = item.as_ref() {
+                return true;
+            }
+            return false;
+        }
+
+        panic!("location does not exist");
+    }
+
     fn within(&self, location: String) -> bool {
         location.starts_with(&self.host_location)
     }
@@ -190,6 +214,34 @@ impl Cache {
         }
     }
 
+    pub fn write(&mut self, location: String, buffer: Vec<u8>) {
+        if !self.within(location.clone()) {
+            panic!("location is not within cache");
+        }
+
+        let trimmed_location = location.replace(&self.host_location, "");
+        let location_path = path::Path::new(&trimmed_location);
+        let file_to_write = location_path.components().last().unwrap();
+        let file_to_write_dir = location.replace(file_to_write.as_os_str().to_str().unwrap(), "");
+
+        if !self.exists(file_to_write_dir.clone()) {
+            panic!("parent directory does not exist");
+        }
+
+        if !self.is_dir(file_to_write_dir) {
+            panic!("the file does not live within a directory");
+        }
+
+        let file = FileSystemItem::File(File {
+            name: file_to_write.as_os_str().to_str().unwrap().to_string(),
+            created: SystemTime::now(),
+            modified: SystemTime::now(),
+            size: buffer.len() as u64,
+            buffer,
+            location: location.clone(),
+            cache_modified: true,
+        });
+    }
 }
 
 fn main() {
@@ -206,7 +258,11 @@ fn main() {
 
     // let disk_end = disk_start.elapsed();
 
-    cache.mkdir(String::from("/Users/synoet/Documents/backup_test/bingo"));
+    // cache.mkdir(String::from("/Users/synoet/Documents/backup_test/bingo"));
+    cache.write(
+        String::from("/Users/synoet/Documents/backup_test/bingo"),
+        vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    );
 
     // println!("Disk took: {:?}", disk_end);
 }
