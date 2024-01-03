@@ -5,6 +5,20 @@
 - Support for common file operations (read, write, create directories, copy, check existence).
 - Ability to synchronize changes back to the disk.
 
+### Basic Stats
+
+This is by no means a good benchmark, just to show what kind of performance gain you get.
+
++-------------+-------------+------------+-----------+------------+-----------+
+| name        | init_time   | write_time | read_time | mkdir_time | rm_time   |
++-------------+-------------+------------+-----------+------------+-----------+
+| imfs::Cache | 82.672083ms | 2.333µs    | 1.791µs   | 3.084µs    | 1.833µs   |
++-------------+-------------+------------+-----------+------------+-----------+
+| std::fs     | 0ms         | 118.667µs  | 5.958µs   | 61.875µs   | 301.958µs |
++-------------+-------------+------------+-----------+------------+-----------+%
+
+
+
 ### Usage
 
 Reading a directory into the cache
