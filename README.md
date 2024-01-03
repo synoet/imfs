@@ -1,4 +1,4 @@
-#### imfs (In-Memory File System)
+# imfs (In-Memory File System)
 **imfs** is a Rust library that provides a virtual wrapper for file system operations. It allows for the storage and manipulation of file system representations in memory, enabling fast and efficient operations. This library is particularly useful in scenarios where applications can handle longer startup and shutdown times but require rapid file operations during runtime.
 ### Features 
 - In-memory caching of file system structures.
@@ -70,6 +70,8 @@ fn main() {
 ```
 
 Syncing changes back to the disk
+
+
 This will sync any changes made to the virtual cache back to it's original location on the file system
 ```rust
 use imfs::Cache;
