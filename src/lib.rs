@@ -270,25 +270,31 @@ impl Cache {
 
     pub fn sync(&mut self) -> Result<(), CacheError> {
         // TODO: it's probobly better to store a RC to modified nodes
-        let _items = self.tree.map.clone().values().filter(|node_ref| {
-            let node = node_ref.borrow();
-            match &node.value {
-                FileSystemItem::File(file) => file.cache_modified,
-                FileSystemItem::Directory(dir) => dir.cache_modified,
-            }
-        }).for_each(|item| {
-            let mut node = item.borrow_mut();
-            match &mut node.value {
-                FileSystemItem::File(file) => {
-                    file.cache_modified = false;
-                    let path = Path::new(&file.location);
-                    std::fs::write(path, &file.buffer).unwrap();
+        let _items = self
+            .tree
+            .map
+            .clone()
+            .values()
+            .filter(|node_ref| {
+                let node = node_ref.borrow();
+                match &node.value {
+                    FileSystemItem::File(file) => file.cache_modified,
+                    FileSystemItem::Directory(dir) => dir.cache_modified,
                 }
-                FileSystemItem::Directory(dir) => {
-                    std::fs::create_dir(&dir.location).unwrap();
+            })
+            .for_each(|item| {
+                let mut node = item.borrow_mut();
+                match &mut node.value {
+                    FileSystemItem::File(file) => {
+                        file.cache_modified = false;
+                        let path = Path::new(&file.location);
+                        std::fs::write(path, &file.buffer).unwrap();
+                    }
+                    FileSystemItem::Directory(dir) => {
+                        std::fs::create_dir(&dir.location).unwrap();
+                    }
                 }
-            }
-        });
+            });
 
         Ok(())
     }

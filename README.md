@@ -42,7 +42,7 @@ use imfs::Cache;
 
 fn main() {
     let mut cache = Cache::new("/Users/synoet/dev/project").unwrap();
-	cache.mkdir("/Users/synoet/dev/project/dir")
+    cache.mkdir("/Users/synoet/dev/project/dir")
 
 }
 ```
@@ -53,7 +53,7 @@ use imfs::Cache;
 
 fn main() {
     let mut cache = Cache::new("/Users/synoet/dev/project").unwrap();
-	let does_exist: bool = cache.exists("/Users/synoet/dev/project/dir")
+    let does_exist: bool = cache.exists("/Users/synoet/dev/project/dir")
 
 }
 ```
@@ -64,7 +64,7 @@ use imfs::Cache;
 
 fn main() {
     let mut cache = Cache::new("/Users/synoet/dev/project").unwrap();
-	cache.rm("/Users/synoet/dev/project/dir")
+    cache.rm("/Users/synoet/dev/project/dir")
 
 }
 ```
@@ -78,6 +78,6 @@ use imfs::Cache;
 
 fn main() {
     let mut cache = Cache::new("/Users/synoet/dev/project").unwrap();
-	cache.sync()
+    cache.sync()
 }
 ```

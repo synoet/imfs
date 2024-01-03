@@ -63,7 +63,7 @@ impl<T> HashedTreeMap<T> {
     pub fn remove(&mut self, id: &str) {
         if let Some(node_ref) = self.map.remove(id) {
             let mut node = node_ref.borrow_mut();
-            
+
             if let Some(children) = node.children.take() {
                 for child_id in children.keys() {
                     let id = format!("{}/{}", id, child_id);
@@ -79,7 +79,7 @@ impl<T> HashedTreeMap<T> {
         }
     }
 
-    fn remove_child(&mut self, child_id:&str) {
+    fn remove_child(&mut self, child_id: &str) {
         if let Some(node_ref) = self.map.remove(child_id) {
             let mut node = node_ref.borrow_mut();
 
