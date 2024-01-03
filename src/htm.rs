@@ -59,6 +59,38 @@ impl<T> HashedTreeMap<T> {
     pub fn get(&self, id: &str) -> Option<NodeRef<TreeNode<T>>> {
         self.map.get(id).map(|rc| Rc::clone(rc))
     }
+
+    pub fn remove(&mut self, id: &str) {
+        if let Some(node_ref) = self.map.remove(id) {
+            let mut node = node_ref.borrow_mut();
+            
+            if let Some(children) = node.children.take() {
+                for child_id in children.keys() {
+                    let id = format!("{}/{}", id, child_id);
+                    self.remove_child(&id);
+                }
+            }
+
+            if let Some(parent_weak) = node.parent.replace(None) {
+                if let Some(parent) = parent_weak.upgrade() {
+                    parent.borrow_mut().children.as_mut().unwrap().remove(id);
+                }
+            }
+        }
+    }
+
+    fn remove_child(&mut self, child_id:&str) {
+        if let Some(node_ref) = self.map.remove(child_id) {
+            let mut node = node_ref.borrow_mut();
+
+            if let Some(children) = node.children.take() {
+                for child_id in children.keys() {
+                    let id = format!("{}/{}", child_id, child_id);
+                    self.remove_child(&id);
+                }
+            }
+        }
+    }
 }
 
 #[cfg(test)]

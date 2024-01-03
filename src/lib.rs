@@ -251,6 +251,17 @@ impl Cache {
     pub fn location(&self) -> &str {
         &self.host_location
     }
+
+    pub fn rm(&mut self, location: &str) -> Result<(), CacheError> {
+        if !self.exists(location) {
+            return Err(CacheError::LocationDoesNotExistError {
+                location: location.to_string(),
+            });
+        }
+
+        self.tree.remove(location);
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -316,5 +327,18 @@ mod tests {
 
         let file = cache.read("/Users/synoet/dev/imfs/src/test.txt").unwrap();
         assert!(matches!(file, FileSystemItem::File(_)));
+    }
+
+    #[test]
+    fn rm() {
+        use super::*;
+        let mut cache = Cache::new("/Users/synoet/dev/imfs").unwrap();
+        let result = cache.rm("/Users/synoet/dev/imfs/src");
+        assert!(result.is_ok());
+        let dir = cache.read("/Users/synoet/dev/imfs/src");
+        assert!(dir.is_err());
+        let file = cache.read("/Users/synoet/dev/imfs/src/lib.rs");
+
+        assert!(file.is_err());
     }
 }
