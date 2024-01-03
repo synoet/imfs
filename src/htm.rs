@@ -48,7 +48,12 @@ impl<T> HashedTreeMap<T> {
         let rc_node = Rc::new(RefCell::new(node));
         let map_node = Rc::clone(&rc_node);
         self.map.insert(id, map_node);
-        parent.borrow_mut().children.as_mut().unwrap_or(&mut HashMap::new()).insert(name, Rc::clone(&rc_node));
+        parent
+            .borrow_mut()
+            .children
+            .as_mut()
+            .unwrap_or(&mut HashMap::new())
+            .insert(name, Rc::clone(&rc_node));
     }
 
     pub fn get(&self, id: &str) -> Option<NodeRef<TreeNode<T>>> {

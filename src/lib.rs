@@ -1,10 +1,10 @@
-mod htm;
 mod error;
+mod htm;
 use error::CacheError;
 use htm::{HashedTreeMap, TreeNode};
-use std::fs::{read_dir, read};
-use std::time::SystemTime;
+use std::fs::{read, read_dir};
 use std::path::Path;
+use std::time::SystemTime;
 
 #[derive(Debug, Clone)]
 pub struct File {
@@ -33,7 +33,6 @@ impl Directory {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub enum FileSystemItem {
     File(File),
@@ -46,12 +45,11 @@ trait InitializeFileTree {
 
 impl InitializeFileTree for HashedTreeMap<FileSystemItem> {
     fn initialize_dir(&mut self, location: &str) {
-
         let node_ref = self.get(location).unwrap();
 
         let dir = match &node_ref.borrow().value {
             FileSystemItem::Directory(dir) => dir.clone(),
-            _ => panic!("Not a directory")
+            _ => panic!("Not a directory"),
         };
 
         let dir_path = Path::new(&dir.location);
@@ -71,7 +69,7 @@ impl InitializeFileTree for HashedTreeMap<FileSystemItem> {
                     node_ref.clone(),
                     path.to_str().unwrap().to_string(),
                     path.file_name().unwrap().to_str().unwrap().to_string(),
-                    item
+                    item,
                 );
                 self.initialize_dir(path.to_str().unwrap());
             } else {
@@ -90,19 +88,16 @@ impl InitializeFileTree for HashedTreeMap<FileSystemItem> {
                     node_ref.clone(),
                     path.to_str().unwrap().to_string(),
                     path.file_name().unwrap().to_str().unwrap().to_string(),
-                    item
+                    item,
                 )
             }
-
         }
-
     }
 }
 
 trait FileItemDescriptors {
     fn name(&self) -> String;
     fn file_type(&self) -> String;
-
 }
 
 impl FileItemDescriptors for FileSystemItem {
@@ -123,13 +118,18 @@ impl FileItemDescriptors for FileSystemItem {
 
 impl std::fmt::Debug for TreeNode<FileSystemItem> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "name: {}, type: {}", self.value.name(), self.value.file_type())
+        write!(
+            f,
+            "name: {}, type: {}",
+            self.value.name(),
+            self.value.file_type()
+        )
     }
 }
 
 pub struct Cache {
     host_location: String,
-    tree: HashedTreeMap<FileSystemItem>
+    tree: HashedTreeMap<FileSystemItem>,
 }
 
 impl Cache {
@@ -137,16 +137,14 @@ impl Cache {
         let path = Path::new(location);
 
         if !path.exists() {
-            return Err(CacheError::LocationDoesNotExistError { location: location.to_string() })
+            return Err(CacheError::LocationDoesNotExistError {
+                location: location.to_string(),
+            });
         }
-
 
         let root_dir = Directory::new(location.to_string());
         let root_node = TreeNode::new(FileSystemItem::Directory(root_dir));
-        let mut tree = HashedTreeMap::new(
-            location.to_string(),
-            root_node
-        );
+        let mut tree = HashedTreeMap::new(location.to_string(), root_node);
 
         tree.initialize_dir(location);
 
@@ -164,7 +162,9 @@ impl Cache {
 
     pub fn read(&self, location: &str) -> Result<FileSystemItem, CacheError> {
         if !self.exists(location) {
-            return Err(CacheError::LocationDoesNotExistError { location: location.to_string() });
+            return Err(CacheError::LocationDoesNotExistError {
+                location: location.to_string(),
+            });
         }
         let node_ref = self.tree.get(location).unwrap();
         let node = node_ref.borrow();
@@ -173,7 +173,9 @@ impl Cache {
 
     pub fn mkdir(&mut self, location: &str) -> Result<(), CacheError> {
         if self.exists(location) {
-            return Err(CacheError::LocationAlreadyExistsError { location: location.to_string() });
+            return Err(CacheError::LocationAlreadyExistsError {
+                location: location.to_string(),
+            });
         }
 
         let location_path = std::path::Path::new(location);
@@ -186,20 +188,29 @@ impl Cache {
                 self.tree.insert(
                     parent_node_ref.clone(),
                     location.to_string(),
-                    location_path.file_name().unwrap().to_str().unwrap().to_string(),
-                    FileSystemItem::Directory(Directory::new(location.to_string()))
+                    location_path
+                        .file_name()
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .to_string(),
+                    FileSystemItem::Directory(Directory::new(location.to_string())),
                 );
                 return Ok(());
-            },
+            }
             None => {
-                return Err(CacheError::LocationDoesNotExistError { location: location.to_string() });
+                return Err(CacheError::LocationDoesNotExistError {
+                    location: location.to_string(),
+                });
             }
         };
     }
 
     pub fn write(&mut self, location: &str, name: &str, buffer: Vec<u8>) -> Result<(), CacheError> {
         if self.exists(location) {
-            return Err(CacheError::LocationAlreadyExistsError { location: location.to_string() });
+            return Err(CacheError::LocationAlreadyExistsError {
+                location: location.to_string(),
+            });
         }
 
         let location_path = std::path::Path::new(location);
@@ -212,7 +223,12 @@ impl Cache {
                 self.tree.insert(
                     parent_node_ref.clone(),
                     location.to_string(),
-                    location_path.file_name().unwrap().to_str().unwrap().to_string(),
+                    location_path
+                        .file_name()
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .to_string(),
                     FileSystemItem::File(File {
                         name: name.to_string(),
                         created: SystemTime::now(),
@@ -220,12 +236,14 @@ impl Cache {
                         size: buffer.len() as u64,
                         buffer,
                         location: location.to_string(),
-                    })
+                    }),
                 );
                 return Ok(());
-            },
+            }
             None => {
-                return Err(CacheError::LocationDoesNotExistError { location: location.to_string() });
+                return Err(CacheError::LocationDoesNotExistError {
+                    location: location.to_string(),
+                });
             }
         };
     }
@@ -283,13 +301,20 @@ mod tests {
     fn write() {
         use super::*;
         let mut cache = Cache::new("/Users/synoet/dev/imfs").unwrap();
-        let result = cache.write("/Users/synoet/dev/imfs/src/test.txt", "test.txt", vec![1, 2, 3]);
+        let result = cache.write(
+            "/Users/synoet/dev/imfs/src/test.txt",
+            "test.txt",
+            vec![1, 2, 3],
+        );
         assert!(result.is_ok());
-        let result = cache.write("/Users/synoet/dev/imfs/src/test.txt", "test.txt", vec![1, 2, 3]);
+        let result = cache.write(
+            "/Users/synoet/dev/imfs/src/test.txt",
+            "test.txt",
+            vec![1, 2, 3],
+        );
         assert!(result.is_err());
 
         let file = cache.read("/Users/synoet/dev/imfs/src/test.txt").unwrap();
         assert!(matches!(file, FileSystemItem::File(_)));
     }
 }
-
